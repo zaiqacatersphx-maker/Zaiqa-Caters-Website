@@ -25,7 +25,7 @@ class ZestAndZenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '𝓩𝓪𝓲𝓺𝓪 𝓒𝓪𝓽𝓮𝓻𝓮𝓻𝓼',
+      title: 'Zaiqa Caterers',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
