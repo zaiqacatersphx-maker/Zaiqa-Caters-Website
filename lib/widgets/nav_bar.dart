@@ -44,6 +44,19 @@ class NavBar extends StatelessWidget {
                 }
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.groups, color: Color(0xFF2C5F2D)),
+              title: const Text("Join WhatsApp Group"),
+              subtitle: const Text("Click to join"),
+              onTap: () async {
+                final Uri launchUri = Uri.parse(
+                  'https://chat.whatsapp.com/BwOe1KFwlT5FXXMU5f1eAK?mode=gi_t',
+                );
+                if (await canLaunchUrl(launchUri)) {
+                  await launchUrl(launchUri);
+                }
+              },
+            ),
           ],
         ),
         actions: [

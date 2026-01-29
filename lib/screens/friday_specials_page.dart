@@ -205,7 +205,7 @@ class _FridaySpecialsPageState extends State<FridaySpecialsPage> {
               child: Column(
                 children: [
                   Text(
-                    "Friday Night Feast",
+                    "Friday Feast",
                     style: GoogleFonts.dmSerifDisplay(
                       fontSize: 36,
                       color: const Color(0xFF2C5F2D),
@@ -214,7 +214,7 @@ class _FridaySpecialsPageState extends State<FridaySpecialsPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Exclusive A La Carte Menu. Order now for delivery this Friday!",
+                    "Exclusive A La Carte Menu. Order now for this Friday!",
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       color: Colors.grey[600],
@@ -437,51 +437,101 @@ class _GuestOrderDialogState extends State<_GuestOrderDialog> {
     }
   }
 
-  Future<void> _submitOrder() async {
+  void _showPaymentReminder() {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-
-      try {
-        // Create an items summary string
-        String itemsSummary = widget.cartItems.length == 1
-            ? widget.cartItems[0]['name']
-            : "${widget.cartItems.length} Items";
-
-        await FirebaseFirestore.instance.collection('orders').add({
-          'items': widget.cartItems, // Array of full item maps
-          'item': itemsSummary, // For legacy/simple display
-          'totalPrice': widget.totalPrice,
-          'price': widget.totalPrice, // Legacy field support
-          'customerName': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'address': _addressController.text.trim(),
-          'orderDate': FieldValue.serverTimestamp(),
-          'status': 'Pending',
-          'isGuest': true,
-        });
-
-        widget.onOrderPlaced();
-
-        if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Order received! We've sent a receipt to your email.",
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            "Payment Reminder!",
+            style: GoogleFonts.dmSerifDisplay(
+              color: const Color(0xFF2C5F2D),
+              fontSize: 24,
+            ),
+          ),
+          content: Text(
+            "Please keep Cash or Zelle ready when picking up your order!",
+            style: GoogleFonts.dmSans(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close alert
+                _submitOrder();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2C5F2D),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                "Place Order",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Failed to place order: $e")));
-        }
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitOrder() async {
+    // Form is already validated in _showPaymentReminder, but good to keep safe if called elsewhere
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Create an items summary string
+      String itemsSummary = widget.cartItems.length == 1
+          ? widget.cartItems[0]['name']
+          : "${widget.cartItems.length} Items";
+
+      await FirebaseFirestore.instance.collection('orders').add({
+        'items': widget.cartItems, // Array of full item maps
+        'item': itemsSummary, // For legacy/simple display
+        'totalPrice': widget.totalPrice,
+        'price': widget.totalPrice, // Legacy field support
+        'customerName': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+        'orderDate': FieldValue.serverTimestamp(),
+        'status': 'Pending',
+        'isGuest': true,
+      });
+
+      widget.onOrderPlaced();
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Order received! We've sent a receipt to your email.",
+            ),
+          ),
+        );
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to place order: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -576,7 +626,10 @@ class _GuestOrderDialogState extends State<_GuestOrderDialog> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitOrder,
+                        // onPressed: _isLoading ? null : _submitOrder, // OLD
+                        onPressed: _isLoading
+                            ? null
+                            : _showPaymentReminder, // NEW
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2C5F2D),
                           shape: RoundedRectangleBorder(
@@ -588,7 +641,7 @@ class _GuestOrderDialogState extends State<_GuestOrderDialog> {
                                 color: Colors.white,
                               )
                             : const Text(
-                                "Confirm & Pay",
+                                "Place Order", // CHANGED FROM "Confirm & Pay"
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
