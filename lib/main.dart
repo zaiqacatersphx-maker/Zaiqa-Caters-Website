@@ -7,13 +7,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey: "AIzaSyDpE4LgzQ3fCfhluxNb-XjfJCdu7oWBO2I",
-      authDomain: "meal-prep-b6461.firebaseapp.com",
-      projectId: "meal-prep-b6461",
-      storageBucket: "meal-prep-b6461.firebasestorage.app",
-      messagingSenderId: "1033470138860",
-      appId: "1:1033470138860:web:50f7f6efd549e004dd48c9",
-      measurementId: "G-7FBQYXSBEQ",
+      apiKey: "AIzaSyAtjvDTdI_f7g6TTGqI9B11gE01KIP0m1g",
+      authDomain: "zaiqacatererswebsite.firebaseapp.com",
+      projectId: "zaiqacatererswebsite",
+      storageBucket: "zaiqacatererswebsite.firebasestorage.app",
+      messagingSenderId: "999360471182",
+      appId: "1:999360471182:web:4191ec1ffc6f58831ae9df",
+      measurementId: "G-G5DWY5KJ65",
     ),
   ); // TODO: Add Firebase Configuration
   runApp(const ZestAndZenApp());
