@@ -15,7 +15,7 @@ void main() async {
       appId: "1:999360471182:web:4191ec1ffc6f58831ae9df",
       measurementId: "G-G5DWY5KJ65",
     ),
-  ); // TODO: Add Firebase Configuration
+  );
   runApp(const ZestAndZenApp());
 }
 

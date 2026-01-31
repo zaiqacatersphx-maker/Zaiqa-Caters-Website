@@ -61,6 +61,37 @@ class _PlansPageState extends State<PlansPage> {
         return;
       }
 
+      // Show confirmation dialog
+      bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            "Confirm Plan Selection",
+            style: GoogleFonts.dmSerifDisplay(color: const Color(0xFF2C5F2D)),
+          ),
+          content: Text(
+            "Are you sure you want to subscribe to $planName?",
+            style: GoogleFonts.dmSans(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2C5F2D),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Confirm"),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
       // User is logged in, save plan
       try {
         await FirebaseFirestore.instance
@@ -90,6 +121,30 @@ class _PlansPageState extends State<PlansPage> {
         context: context,
         builder: (_) => const AuthDialog(isSignUp: true),
       ).then((_) => _checkCurrentPlan()); // Re-check after potential login
+    }
+  }
+
+  Future<void> _deselectPlan() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('customers')
+            .doc(user.uid)
+            .update({'plan': 'no'});
+
+        setState(() {
+          _currentPlan = null;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Plan deselected.")));
+        }
+      } catch (e) {
+        debugPrint("Error deselecting plan: $e");
+      }
     }
   }
 
@@ -186,11 +241,44 @@ class _PlansPageState extends State<PlansPage> {
                                   color: const Color(0xFFE0F2F1), // Light Teal
                                   onSelect: () =>
                                       _selectPlan(context, "The Full Zen"),
+                                  onDeselect: _deselectPlan,
                                   isCurrentPlan: _currentPlan == "The Full Zen",
                                   hasActivePlan: _currentPlan != null,
                                 ),
                               ],
                             );
+                          },
+                        ),
+                        const SizedBox(height: 80),
+                        StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('dishes')
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return const SizedBox.shrink();
+                            }
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const SizedBox.shrink();
+                            }
+
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+
+                            final dishNames = snapshot.data!.docs
+                                .map(
+                                  (doc) =>
+                                      (doc.data()
+                                              as Map<String, dynamic>)['name']
+                                          as String,
+                                )
+                                .toList();
+                            dishNames.sort();
+
+                            return _MenuLibraryCard(dishNames: dishNames);
                           },
                         ),
                       ],
@@ -212,6 +300,7 @@ class _PlanCard extends StatelessWidget {
   final Map<String, String> menu;
   final Color color;
   final VoidCallback onSelect;
+  final VoidCallback? onDeselect;
   final bool isCurrentPlan;
   final bool hasActivePlan;
 
@@ -223,6 +312,7 @@ class _PlanCard extends StatelessWidget {
     required this.menu,
     required this.color,
     required this.onSelect,
+    this.onDeselect,
     this.isCurrentPlan = false,
     this.hasActivePlan = false,
   });
@@ -259,10 +349,14 @@ class _PlanCard extends StatelessWidget {
                 ),
               ),
               if (isCurrentPlan)
-                const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF2C5F2D),
-                  size: 30,
+                IconButton(
+                  icon: const Icon(
+                    Icons.check_circle,
+                    color: Color(0xFF2C5F2D),
+                    size: 30,
+                  ),
+                  onPressed: onDeselect,
+                  tooltip: "Deselect Plan",
                 ),
             ],
           ),
@@ -360,6 +454,80 @@ class _PlanCard extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuLibraryCard extends StatelessWidget {
+  final List<String> dishNames;
+
+  const _MenuLibraryCard({required this.dishNames});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 800,
+      constraints: const BoxConstraints(maxWidth: 800),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(0.05), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Our Full Meal Library",
+            style: GoogleFonts.dmSerifDisplay(
+              fontSize: 32,
+              color: const Color(0xFF2C5F2D),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "Take a look at all the delicious meals we rotate into our weekly menus.",
+            style: GoogleFonts.dmSans(fontSize: 16, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 30),
+          Divider(color: Colors.black12),
+          const SizedBox(height: 30),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: dishNames.map((name) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F8E9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF2C5F2D).withOpacity(0.1),
+                  ),
+                ),
+                child: Text(
+                  name,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF2C5F2D),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
